@@ -1,12 +1,6 @@
 #include "conn.h"
 
-struct conn* conn_init(
-    char* hostname,
-    int h_len,
-    char* port,
-    int po_len,
-    char* path,
-    int pa_len)
+struct conn* conn_init(char* hostname, char* port, char* path)
 {
     struct conn* c = (struct conn*) malloc(sizeof(struct conn));
     c->state = CONN_CLOSED;
@@ -82,15 +76,13 @@ int conn_handshake(struct conn* c)
     if (c->state == CONN_OPEN) {
         char* rq = NULL;
         unsigned char key[25] = {0};
-        int rq_sz = _conn_assemble_handshake(c, &rq, key);\
+        int rq_sz = _conn_assemble_handshake(c, &rq, key);
         SSL_write(c->ssl, rq, rq_sz);
         free(rq);
 
         // Adjust this buffer size?
         char buf[2048] = {0};
         SSL_read(c->ssl, buf, 2048);
-        printf("result: %d\n", _conn_check_handshake_response(buf, 2048, key, 25));
-
     } else {
         result = -1;
     }
@@ -157,7 +149,11 @@ int _conn_assemble_handshake(struct conn* c, char** r, unsigned char* key)
 }
 
 // Refactor this method (try to eliminate magic numbers where possible)
-int _conn_check_handshake_response(char* rs, int rs_len, unsigned char* key, int key_len)
+int _conn_check_handshake_response(
+    char* rs,
+    int rs_len,
+    unsigned char* key,
+    int key_len)
 {
     int result = 0;
 
@@ -203,7 +199,7 @@ int _conn_check_handshake_response(char* rs, int rs_len, unsigned char* key, int
             
             // Make sure the hashed key and the given hash by the server are
             // the same.
-            if (strncmp(hash, end, 32)) {
+            if (strncmp((char*) hash, (char*) end, hash_len)) {
                 result = -3;
             }
         } else {

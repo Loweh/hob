@@ -33,13 +33,7 @@ struct conn {
     Creates a new SSL connection associated with the given hostname, port
     and resource path. Returns NULL on failure.
 */
-struct conn* conn_init(
-    char* hostname,
-    int h_len,
-    char* port,
-    int po_len,
-    char* path,
-    int pa_len);
+struct conn* conn_init(char* hostname, char* port, char* path);
 /*
     Opens a connection. Returns 0 on success, negative values on failure.
 */
