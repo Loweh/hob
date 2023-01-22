@@ -1,0 +1,4 @@
+Add support for masking WebSocket frames
+
+Revisit ws_frame and conn code for cleanup
+

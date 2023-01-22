@@ -187,7 +187,8 @@ int _conn_check_handshake_response(
             // string (part of the WebSocket protocol).
             unsigned char exp[64] = {0};
             memcpy(exp, key, key_len);
-            memcpy(exp + key_len - 1, "258EAFA5-E914-47DA-95CA-C5AB0DC85B11", 36);
+            memcpy(exp + key_len - 1, "258EAFA5-E914-47DA-95CA-C5AB0DC85B11",
+                   36);
 
             // TODO: Get rid of these deprecated calls and get EVP_Digest
             // working instead.
@@ -209,5 +210,23 @@ int _conn_check_handshake_response(
         result = -1;
     }
 
+    return result;
+}
+
+struct ws_frame* conn_read(struct conn* c)
+{
+    // Discord payloads are meant to be 4096 bytes or less. Add an extra 1KB
+    // now for WebSocket header.
+    char buf[5120] = {0};
+    SSL_read(c->ssl, buf, 5120);
+    return ws_deserialize_frame(buf, 5120);
+}
+
+int conn_write(struct conn* c, struct ws_frame* frame)
+{
+    char* out = NULL;
+    int out_len = ws_serialize_frame(frame, &out);
+    int result = SSL_write(c->ssl, out, out_len);
+    free(out);
     return result;
 }

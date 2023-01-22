@@ -12,6 +12,8 @@
 #include <openssl/rand.h>
 #include <openssl/sha.h>
 
+#include "ws_frame.h"
+
 #define CONN_WS_KEY_SZ 16 // WebSocket key size for HTTP handshake
 
 enum conn_state {
@@ -62,5 +64,16 @@ int _conn_check_handshake_response(
     int rs_len,
     unsigned char* key,
     int key_len);
+
+/*
+    Reads from the connection. Returns a struct ws_frame on success and NULL
+    on error.
+*/
+struct ws_frame* conn_read(struct conn* c);
+
+/*
+    Writes a struct ws_frame to the connection. Returns the result of SSL_write.
+*/
+int conn_write(struct conn* c, struct ws_frame* frame);
 
 #endif

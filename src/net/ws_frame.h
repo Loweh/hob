@@ -26,7 +26,9 @@ struct ws_frame {
 };
 
 char* reverse_bytes(char* src, int n);
+
 struct ws_frame* ws_deserialize_frame(char* raw, int n);
 int ws_serialize_frame(struct ws_frame* frame, char** data);
+void ws_free_frame(struct ws_frame** frame);
 
 #endif

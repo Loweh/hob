@@ -11,6 +11,8 @@ char* reverse_bytes(char* src, int n)
     return reverse;
 }
 
+
+
 // Add length error checking on n, where n is the length of raw
 // Refactor so it looks better
 struct ws_frame* ws_deserialize_frame(char* raw, int n)
@@ -127,4 +129,12 @@ int ws_serialize_frame(struct ws_frame* frame, char** data)
     offset += frame->length;
 
     return offset;
+}
+
+void ws_free_frame(struct ws_frame** frame)
+{
+    struct ws_frame*f = *frame;
+    free(f->payload);
+    free(f);
+    *frame = NULL;
 }
