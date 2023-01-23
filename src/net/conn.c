@@ -113,7 +113,8 @@ int _conn_assemble_handshake(struct conn* c, char** r, unsigned char* key)
                 "Sec-WebSocket-Key: ";
     char* hdr4 = "\r\n\r\n";
 
-    char* segments[] = {hdr1, c->path, hdr2, c->hostname, hdr3, key, hdr4};
+    char* segments[] = {hdr1, c->path, hdr2, c->hostname, hdr3, (char*) key, 
+                        hdr4};
     int sizes[] = {
         strlen(hdr1),
         strlen(c->path),

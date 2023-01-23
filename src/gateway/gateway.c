@@ -23,7 +23,7 @@ void gateway_free(struct gateway** g)
 
 int gateway_open(struct gateway* g)
 {
-
+    return 0;
 }
 
 void gateway_close(struct gateway* g)

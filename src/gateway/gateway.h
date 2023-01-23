@@ -16,10 +16,24 @@ struct gateway {
     int timeout;
 };
 
+/*
+    Initializes the components necessary for a Discord Gateway API connection.
+    Returns a dynamically allocated struct gateway.
+*/
 struct gateway* gateway_init();
+/*
+    Frees the components associated with a Gateway connection.
+*/
 void gateway_free(struct gateway** g);
 
+/*
+    Opens the Gateway connection and performs the necessary handshakes.
+    Returns 0 on success, negative on failure.
+*/
 int gateway_open(struct gateway* g);
+/*
+    Closes the Gateway connection.
+*/
 void gateway_close(struct gateway* g);
 
 int gateway_ping();
