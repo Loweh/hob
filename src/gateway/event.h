@@ -22,6 +22,7 @@ enum event_opcode {
 struct event {
     enum event_opcode opcode;
     char* data;
+    int length;
     unsigned int seq;
     char* name;
 };
@@ -32,5 +33,7 @@ int _json_to_event(struct event* e, struct ws_frame* frame,
 struct event* event_deserialize(struct ws_frame* frame);
 int event_serialize(struct event* e, struct ws_frame* frame);
 void event_free(struct event** e_ref);
+
+int get_hello_data(struct event* e);
 
 #endif

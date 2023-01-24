@@ -4,8 +4,10 @@ struct gateway* gateway_init()
 {
     struct gateway* g = (struct gateway*) malloc(sizeof(struct gateway));
     g->alive = 0;
-    g->c = NULL;
+    g->c = conn_init("gateway.discord.gg", "443", "wss://gateway.discord.gg");
     g->timeout = 0;
+    g->last_ping = 0;
+    g->evt_seq = 0;
     return g;
 }
 
@@ -23,11 +25,81 @@ void gateway_free(struct gateway** g)
 
 int gateway_open(struct gateway* g)
 {
-    return 0;
+    int result = 0;
+
+    if (!conn_open(g->c)) {
+        g->alive = 1;
+
+        if (!conn_handshake(g->c)) {
+            // Get hello event from server
+            struct ws_frame* out_frame = conn_read(g->c);
+            struct event* e = event_deserialize(out_frame);
+
+            if (e->opcode != EVENT_HELLO) {
+                gateway_close(g);
+                result = -3;
+            } else {
+                int hb_interval = get_hello_data(e);
+                printf("Heartbeat interval: %d\n", hb_interval);
+                g->timeout = hb_interval;
+            }
+
+            event_free(&e);
+            ws_free_frame(&out_frame);
+        } else {
+            gateway_close(g);
+            result = -2;
+        }
+    } else {
+        result = -1;
+    }
+
+    return result;
 }
 
 void gateway_close(struct gateway* g)
 {
-    
+    conn_close(&(g->c));
+    g->alive = 0;
 }
 
+int gateway_ping(struct gateway* g)
+{
+    struct ws_frame frame;
+    frame.fin = 1;
+    frame.opcode = WS_TXT_FRAME;
+    frame.mask = 1;
+    frame.mask_key = 0;
+
+    if (g->evt_seq != 0) {
+        char* payld1 = "{\"op\": 1, \"d\": ";
+        int payld1_len = strlen(payld1);
+        int evt_seq_len = get_num_str_len(g->evt_seq);
+        frame.length = payld1_len + evt_seq_len + 1;
+        frame.payload = (char*) malloc(frame.length);
+        
+        memcpy(frame.payload, payld1, payld1_len);
+        snprintf(frame.payload + payld1_len, evt_seq_len + 2, "%i}", g->evt_seq);
+        printf("payload to send: %s\n", frame.payload);
+    } else {
+        frame.length = 22;
+        frame.payload = (char*) malloc(frame.length);
+        memcpy(frame.payload, "{ \"op\": 1, \"d\": null }", frame.length);
+    }
+
+    int ret = conn_write(g->c, &frame);
+    free(frame.payload);
+    return ret;
+}
+
+int get_num_str_len(int num)
+{
+    int n = 1;
+
+    while (num > 10) {
+        num /= 10;
+        n++;
+    }
+
+    return n;
+}

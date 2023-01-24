@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "../net/conn.h"
+#include "event.h"
 
 /*
     Gateway will have read and write functions that take / return dynamically
@@ -14,6 +15,8 @@ struct gateway {
     int alive;
     struct conn* c;
     int timeout;
+    int last_ping;
+    int evt_seq;
 };
 
 /*
@@ -36,6 +39,6 @@ int gateway_open(struct gateway* g);
 */
 void gateway_close(struct gateway* g);
 
-int gateway_ping();
+int gateway_ping(struct gateway* g);
 
 #endif
