@@ -2,3 +2,7 @@ Add support for masking WebSocket frames
 
 Revisit ws_frame and conn code for cleanup
 
+Add http interpreter
+
+Start working on nonblocking code for sockets
+
