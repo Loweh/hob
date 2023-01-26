@@ -3,10 +3,31 @@
 #include <openssl/err.h>
 #include "net/conn.h"
 #include "net/ws_frame.h"
+#include "net/http.h"
 #include "gateway/gateway.h"
 
 int main()
 {
+    /*
+    struct http_rq* rq = http_rq_init(HTTP_GET, "/", 1);
+    http_rq_add_hdr(rq, "Origin", 6, "example.com", 11);
+    http_rq_add_hdr(rq, "Test1", 5, "ABCDEFGHIJKLMNOP", 16);
+    char* str = NULL;
+    int len = http_rq_serialize(rq, &str);
+    printf("%s", str);
+    */
+
+    /*
+    char* str = "HTTP/1.1 200 OK\r\nDate: aaaaaaaaaaaa\r\nOrigin: example.com\r\n";
+    int strlen = 59;
+
+    struct http_rs* rs = http_rs_deserialize(str, strlen);
+
+    //free(str);
+    //http_rq_free(rq);
+    http_rs_free(rs);
+    */
+
     struct gateway* g = gateway_init();
     
     if (!gateway_open(g)) {
@@ -17,6 +38,7 @@ int main()
                "mask: %hhu\n\tlength: %lu\n\tmask_key: %u\n\tpayload: %s\n",
                out1_frame->fin, out1_frame->opcode, out1_frame->mask,
                out1_frame->length, out1_frame->mask_key, out1_frame->payload);
+        free(out1_frame);
 
         struct ws_frame in_frame;
         in_frame.fin = 1;
@@ -42,6 +64,7 @@ int main()
                "mask: %hhu\n\tlength: %lu\n\tmask_key: %u\n\tpayload: %s\n",
                out1_frame->fin, out1_frame->opcode, out1_frame->mask,
                out1_frame->length, out1_frame->mask_key, out1_frame->payload);
+        free(out1_frame);
 
         while (1) {
             printf("Sending ping...\n");
@@ -52,6 +75,7 @@ int main()
                    "mask: %hhu\n\tlength: %lu\n\tmask_key: %u\n\tpayload: %s\n",
                    out_frame->fin, out_frame->opcode, out_frame->mask,
                    out_frame->length, out_frame->mask_key, out_frame->payload);
+            free(out_frame);
 
             sleep(g->timeout / 1000);
         }
@@ -61,51 +85,6 @@ int main()
     }
 
     gateway_free(&g);
-    /*
-    struct conn* c = conn_init(
-        "gateway.discord.gg",
-        "443",
-        "wss://gateway.discord.gg");
-
-    if (c != NULL) {
-        int result = conn_open(c);
-        if (!result) {
-            conn_handshake(c);
-
-            struct ws_frame frame;
-            frame.fin = 1;
-            frame.opcode = WS_PING_FRAME;
-            frame.mask = 1;
-            frame.length = 0;
-            frame.mask_key = 0;
-            frame.payload = NULL;
-
-            conn_write(c, &frame);
-
-            struct ws_frame* out_frame = conn_read(c);
-
-            printf("received frame:\n\tfin: %hhu\n\topcode: %hhu\n\t"
-                   "mask: %hhu\n\tlength: %lu\n\tmask_key: %u\n\tpayload: %s\n",
-                   out_frame->fin, out_frame->opcode, out_frame->mask,
-                   out_frame->length, out_frame->mask_key, out_frame->payload);
-
-            struct event* e = event_deserialize(out_frame);
-
-            printf("received event:\n\topcode: %d\n\tdata: %s\n", e->opcode,
-                   e->data);
-
-            event_free(&e);
-            ws_free_frame(&out_frame);
-
-            conn_close(&c);
-        } else {
-            conn_close(&c);
-            printf("ERROR: Could not open connection. (%d)\n", result);
-        }
-    } else {
-        printf("ERROR: Could not initialize connection.\n");
-    }
-    */
 
     return 0;
 }

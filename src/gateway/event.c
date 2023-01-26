@@ -137,7 +137,8 @@ int get_hello_data(struct event* e)
                 result = (int) strtol(num, &endptr, 10);
 
                 if (endptr == num) {
-                    return -1;
+                    result = -2;
+                    break;
                 }
 
                 free(num);

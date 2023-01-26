@@ -27,13 +27,33 @@ struct event {
     char* name;
 };
 
+/*
+    Populates a struct event with its associated data from the raw JSON in
+    the struct ws_frame payload. Returns 0 on success, negative values on
+    failure.
+*/
 int _json_to_event(struct event* e, struct ws_frame* frame,
                    jsmntok_t* tokens, int n);
 
+/*
+    Attempts to extract an event from the payload of a given struct ws_frame.
+    Returns a struct event allocated dynamically on success, NULL on failure.
+*/
 struct event* event_deserialize(struct ws_frame* frame);
+/*
+    Set the payload for a given struct ws_frame to the JSON representation
+    of the struct event given. Returns 0 on success, negative value on faliure.
+*/
 int event_serialize(struct event* e, struct ws_frame* frame);
+/*
+    Frees the event and its unmanaged resources.
+*/
 void event_free(struct event** e_ref);
 
+/*
+    Get the heartbeat interval from the Gateway hello. Returns the heartbeat
+    interval in ms or a negative value on failure.
+*/
 int get_hello_data(struct event* e);
 
 #endif

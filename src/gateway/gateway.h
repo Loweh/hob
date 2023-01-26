@@ -39,6 +39,9 @@ int gateway_open(struct gateway* g);
 */
 void gateway_close(struct gateway* g);
 
+/*
+    Sends a Gateway Heartbeat message. Returns the return value of SSL_write.
+*/
 int gateway_ping(struct gateway* g);
 
 #endif

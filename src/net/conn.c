@@ -74,15 +74,38 @@ int conn_handshake(struct conn* c)
     int result = 0;
 
     if (c->state == CONN_OPEN) {
-        char* rq = NULL;
+        char* str = NULL;
+        // Generate the base64 key
         unsigned char key[25] = {0};
-        int rq_sz = _conn_assemble_handshake(c, &rq, key);
-        SSL_write(c->ssl, rq, rq_sz);
+        unsigned char bytes[CONN_WS_KEY_SZ] = {0};
+
+        if (RAND_bytes(bytes, CONN_WS_KEY_SZ) != 1) {
+            return -2;
+        }
+
+        int key_sz = EVP_EncodeBlock(key, bytes, CONN_WS_KEY_SZ);
+        //int rq_sz = _conn_assemble_handshake(c, &rq, key);
+        struct http_rq* rq = http_rq_init(HTTP_GET, c->path, strlen(c->path));
+        int err = http_rq_add_hdr(rq, "Host", 4, c->hostname, strlen(c->hostname));
+        err += http_rq_add_hdr(rq, "Connection", 10, "Upgrade", 7);
+        err += http_rq_add_hdr(rq, "Upgrade", 7, "websocket", 9);
+        err += http_rq_add_hdr(rq, "Sec-WebSocket-Version", 21, "13", 2);
+        err += http_rq_add_hdr(rq, "Sec-WebSocket-Key", 17, key, key_sz);
+
+        if (err != 0) {
+            return -3;
+        }
+
+        int str_sz = http_rq_serialize(rq, &str);
+        printf("%s\n", str);
+        SSL_write(c->ssl, str, str_sz);
         free(rq);
 
+        // TODO: VERIFY RESPONSE
         // Adjust this buffer size?
         char buf[2048] = {0};
         SSL_read(c->ssl, buf, 2048);
+        printf("%s\n", buf);
     } else {
         result = -1;
     }

@@ -13,6 +13,7 @@
 #include <openssl/sha.h>
 
 #include "ws_frame.h"
+#include "http.h"
 
 #define CONN_WS_KEY_SZ 16 // WebSocket key size for HTTP handshake
 

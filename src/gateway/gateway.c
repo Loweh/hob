@@ -33,6 +33,10 @@ int gateway_open(struct gateway* g)
         if (!conn_handshake(g->c)) {
             // Get hello event from server
             struct ws_frame* out_frame = conn_read(g->c);
+            printf("Received frame:\n\tfin: %hhu\n\topcode: %hhu\n\t"
+               "mask: %hhu\n\tlength: %lu\n\tmask_key: %u\n\tpayload: %s\n",
+               out_frame->fin, out_frame->opcode, out_frame->mask,
+               out_frame->length, out_frame->mask_key, out_frame->payload);
             struct event* e = event_deserialize(out_frame);
 
             if (e->opcode != EVENT_HELLO) {
