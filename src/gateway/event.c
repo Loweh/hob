@@ -5,8 +5,8 @@ int _json_to_event(struct event* e, struct ws_frame* frame,
 {
     int in_main_obj = 0;
     char* last_value = NULL;
-    int last_value_len = 0;
-    jsmntype_t last_type = JSMN_UNDEFINED;
+    //int last_value_len = 0;
+    //jsmntype_t last_type = JSMN_UNDEFINED;
 
     for (int i = 0; i < n; i++) {
         if (tokens[i].type == JSMN_UNDEFINED) {
@@ -53,8 +53,8 @@ int _json_to_event(struct event* e, struct ws_frame* frame,
 
         free(last_value);
         last_value = value;
-        last_type = tokens[i].type;
-        last_value_len = len;
+        //last_type = tokens[i].type;
+        //last_value_len = len;
     }
 
     return 0;

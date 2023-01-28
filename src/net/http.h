@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 enum http_mth {
     HTTP_GET,
@@ -33,11 +34,29 @@ struct http_rs {
     struct http_hdr* hdrs;
 };
 
+void _strnlower(char* str, int n);
+/*
+    Attempts to find a given header in an list of headers given a name.
+    Returns a struct http_hdr* on success, NULL on failure.
+*/
 struct http_hdr* http_get_hdr(struct http_hdr* hdrs, char* name, int name_sz);
 
+
+/*
+    Dynamically allocates a new struct http_rq. Returns the newly allocated
+    struct.
+*/
 struct http_rq* http_rq_init(enum http_mth method, char* path, int path_sz);
+/*
+    Frees the given struct http_rq.
+*/
 void http_rq_free(struct http_rq* rq);
 
+
+/*
+    Adds a new header with the given name and value to the given struct
+    http_rq. Returns 0 on success, negative values on failure.
+*/
 int http_rq_add_hdr(struct http_rq* rq, char* name, int name_sz, char* value,
                     int value_sz);
 

@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "conn.h": "c",
-        "jsmn.h": "c"
+        "jsmn.h": "c",
+        "ssl.h": "c"
     }
 }

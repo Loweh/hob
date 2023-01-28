@@ -10,7 +10,6 @@
 #include <openssl/ssl.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
-#include <openssl/sha.h>
 
 #include "ws_frame.h"
 #include "http.h"
@@ -52,17 +51,12 @@ void conn_close(struct conn** c);
 */
 int conn_handshake(struct conn* c);
 /*
-    Helper function for conn_handshake. Generates initial HTTP handshake
-    message. Returns the length in bytes of the message or -1 on error.
-*/
-int _conn_assemble_handshake(struct conn* c, char** r, unsigned char* key);
-/*
     Helper function for conn_handshake. Interpets the response HTTP message
     to ensure it is valid. Returns 0 on success, negative values on failure.
 */
 int _conn_check_handshake_response(
-    char* rs,
-    int rs_len,
+    char* str,
+    int str_len,
     unsigned char* key,
     int key_len);
 

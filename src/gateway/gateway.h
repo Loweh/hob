@@ -44,4 +44,6 @@ void gateway_close(struct gateway* g);
 */
 int gateway_ping(struct gateway* g);
 
+int get_num_str_len(int num);
+
 #endif

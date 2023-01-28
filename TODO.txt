@@ -2,8 +2,8 @@ Add support for masking WebSocket frames
 
 Revisit ws_frame and conn code for cleanup
 
-Use HTTP interpreter to verify the response from the websocket handshake is
-good
+Clean up conn.c, especially surrounding the verification of server handshake 
+response
 
 Start working on nonblocking code for sockets
 

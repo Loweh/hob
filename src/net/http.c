@@ -1,16 +1,33 @@
 #include "http.h"
 
+void _strnlower(char* str, int n)
+{
+    if (str != NULL) {
+        for (int i = 0; i < n; i++) {
+            str[i] = tolower(str[i]);
+        }
+    }
+}
+
 struct http_hdr* http_get_hdr(struct http_hdr* hdrs, char* name, int name_sz)
 {
     struct http_hdr* cur = hdrs;
+    char* lower_name = (char*) malloc(name_sz);
+    memcpy(lower_name, name, name_sz);
+    
+    _strnlower(lower_name, name_sz);
 
     while (cur != NULL) {
         if (name_sz == cur->name_sz) {
-            if (!strncmp(name, cur->name, name_sz)) {
+            if (!strncmp(lower_name, cur->name, name_sz)) {
                 break;
             }
         }
+
+        cur = cur->next;
     }
+
+    free(lower_name);
 
     return cur;
 }
@@ -185,6 +202,8 @@ struct http_rs* http_rs_deserialize(char* str, int sz)
         prev = str[i];
     }
 
+    line_cnt--; // Since there will be an empty line before data.
+
     char** lines = (char**) malloc(sizeof(char*) * line_cnt);
     int* sizes = (int*) malloc(sizeof(int) * line_cnt);
     int cur_line = 0;
@@ -213,6 +232,7 @@ struct http_rs* http_rs_deserialize(char* str, int sz)
     }
 
     struct http_rs* rs = (struct http_rs*) malloc(sizeof(struct http_rs));
+    rs->hdrs = NULL;
 
     for (int i = 0; i < line_cnt; i++) {
         if (!i) {
@@ -243,7 +263,8 @@ void _http_rs_deserialize_first(struct http_rs* rs, char* line, int line_sz)
                 memcpy(rs->version, line, i);
                 rs->version_sz = i;
             } else {
-                rs->status = strtol(line + start, line + i - start - 1, 10);
+                rs->status = strtol(line + start, 
+                                    (char**) line + i - start - 1, 10);
                 break;
             }
             start = i + 1;
@@ -254,6 +275,8 @@ void _http_rs_deserialize_first(struct http_rs* rs, char* line, int line_sz)
 void _http_rs_deserialize_hdr(struct http_rs* rs, char* line, int line_sz)
 {
     struct http_hdr* hdr = (struct http_hdr*) malloc(sizeof(struct http_hdr));
+    hdr->next = NULL;
+
     char prev = 0;
 
     for (int i = 0; i < line_sz; i++) {
@@ -268,6 +291,7 @@ void _http_rs_deserialize_hdr(struct http_rs* rs, char* line, int line_sz)
 
             hdr->name = name;
             hdr->name_sz = name_sz;
+            _strnlower(hdr->name, hdr->name_sz);
             hdr->value = value;
             hdr->value_sz = value_sz;
 
