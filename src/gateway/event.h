@@ -40,11 +40,17 @@ int _json_to_event(struct event* e, struct ws_frame* frame,
     Returns a struct event allocated dynamically on success, NULL on failure.
 */
 struct event* event_deserialize(struct ws_frame* frame);
+
+/*
+    Helper function for event_serialize to determine how many digits are in
+    a given number. Used to ensure string number outputs are the correct length.
+*/
+int digit_count(int n);
 /*
     Set the payload for a given struct ws_frame to the JSON representation
-    of the struct event given. Returns 0 on success, negative value on faliure.
+    of the struct event given. Returns the dynamically allocated struct ws_frame.
 */
-int event_serialize(struct event* e, struct ws_frame* frame);
+struct ws_frame* event_serialize(struct event* e);
 /*
     Frees the event and its unmanaged resources.
 */

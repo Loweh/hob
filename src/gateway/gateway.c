@@ -1,10 +1,12 @@
 #include "gateway.h"
 
-struct gateway* gateway_init()
+struct gateway* gateway_init(char* token, int token_sz)
 {
     struct gateway* g = (struct gateway*) malloc(sizeof(struct gateway));
     g->alive = 0;
     g->c = conn_init("gateway.discord.gg", "443", "wss://gateway.discord.gg");
+    g->token = token;
+    g->token_sz = token_sz;
     g->timeout = 0;
     g->last_ping = 0;
     g->evt_seq = 0;
@@ -46,6 +48,13 @@ int gateway_open(struct gateway* g)
                 int hb_interval = get_hello_data(e);
                 printf("Heartbeat interval: %d\n", hb_interval);
                 g->timeout = hb_interval;
+
+                gateway_ping(g);
+                struct ws_frame* out_frame = conn_read(g->c);
+                printf("Received message from ping: %s\n", out_frame->payload);
+
+                printf("Identifying...\n");
+                gateway_identify(g);
             }
 
             event_free(&e);
@@ -65,6 +74,47 @@ void gateway_close(struct gateway* g)
 {
     conn_close(&(g->c));
     g->alive = 0;
+}
+
+int gateway_identify(struct gateway* g)
+{
+    struct event identify;
+    identify.opcode = EVENT_ID;
+    identify.seq = -1;
+
+    char* txt1 = "{ \"token\": \"";
+    int txt1_sz = strlen(txt1);
+    char* txt2 = "\", \"properties\": {"
+                        "\"os\": \"linux\","
+                        "\"browser\": \"hob\","
+                        "\"device\": \"hob\"},"
+                        "\"intents\": 0"
+                    "}";
+    int txt2_sz = strlen(txt2);
+
+    identify.length = txt1_sz + txt2_sz + g->token_sz;
+    identify.data = (char*) malloc(identify.length);
+    int offset = 0;
+
+    memcpy(identify.data + offset, txt1, txt1_sz);
+    offset += txt1_sz;
+    memcpy(identify.data + offset, g->token, g->token_sz);
+    offset += g->token_sz;
+    memcpy(identify.data + offset, txt2, txt2_sz);
+
+    struct ws_frame* in_frame = event_serialize(&identify);
+
+    conn_write(g->c, in_frame);
+    free(identify.data);
+    free(in_frame);
+
+    // Wait for a response, make sure it is a READY event before returning 0.
+    // Grab important stuff like session ID as well
+
+    struct ws_frame* out_frame = conn_read(g->c);
+    printf("Received message from identify: %s\n", out_frame->payload);
+
+    return 0;
 }
 
 int gateway_ping(struct gateway* g)

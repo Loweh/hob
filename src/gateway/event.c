@@ -87,9 +87,70 @@ struct event* event_deserialize(struct ws_frame* frame)
     return e;
 }
 
-int event_serialize(struct event* e, struct ws_frame* frame)
+int digit_count(int n)
 {
-    return 0;
+    int digits = 1;
+
+    while (n > 10) {
+        n /= 10;
+        digits++;
+    }
+
+    return digits;
+}
+
+struct ws_frame* event_serialize(struct event* e)
+{
+    struct ws_frame* frame = (struct ws_frame*) malloc(sizeof(struct ws_frame));
+    frame->fin = 1;
+    frame->opcode = WS_TXT_FRAME;
+    frame->mask = 1;
+    frame->mask_key = 0;
+
+    char* txt1 = "{\"op\": ";
+
+    int op_digits = digit_count(e->opcode);
+    char* opcode = (char*) malloc(op_digits);
+    snprintf(opcode, op_digits + 1, "%i", e->opcode);
+
+    char* txt2 = NULL;
+
+    char* seq = NULL;
+    int seq_digits = 0;
+
+    if (e->seq != -1) {
+        txt2 = ", \"s\": ";
+        seq_digits = digit_count(e->seq);
+        seq = (char*) malloc(seq_digits);
+        snprintf(seq, seq_digits + 1, "%i", e->seq);
+    }
+
+    char* txt3 = ", \"d\": ";
+    char* txt4 = "}";
+
+    char* segments[7] = {txt1, opcode, txt2, seq, txt3, e->data, txt4};
+    int sizes[7] = {strlen(txt1), op_digits, txt2 != NULL ? strlen(txt2) : 0, 
+                   seq_digits, strlen(txt3), e->length, strlen(txt4)};
+
+    frame->length = 0;
+
+    for (int i = 0; i < 7; i++) {
+        frame->length += sizes[i];
+    }
+
+    printf("length: %lu\n", frame->length);
+
+    frame->payload = (char*) malloc(frame->length);
+    int offset = 0;
+
+    for (int i = 0; i < 7; i++) {
+        if (segments[i] != NULL) {
+            memcpy(frame->payload + offset, segments[i], sizes[i]);
+            offset += sizes[i];
+        }
+    }
+
+    return frame;
 }
 
 void event_free(struct event** e_ref)

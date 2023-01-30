@@ -14,6 +14,8 @@
 struct gateway {
     int alive;
     struct conn* c;
+    char* token;
+    int token_sz;
     int timeout;
     int last_ping;
     int evt_seq;
@@ -23,7 +25,7 @@ struct gateway {
     Initializes the components necessary for a Discord Gateway API connection.
     Returns a dynamically allocated struct gateway.
 */
-struct gateway* gateway_init();
+struct gateway* gateway_init(char* token, int token_sz);
 /*
     Frees the components associated with a Gateway connection.
 */
@@ -39,6 +41,11 @@ int gateway_open(struct gateway* g);
 */
 void gateway_close(struct gateway* g);
 
+/*
+    Identifies the bot to the Gateway server. Returns 0 on success, negative
+    values on failure.
+*/
+int gateway_identify(struct gateway* g);
 /*
     Sends a Gateway Heartbeat message. Returns the return value of SSL_write.
 */
