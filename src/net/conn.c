@@ -17,6 +17,7 @@ struct conn* conn_init(char* hostname, char* port, char* path)
 
         if (c->ssl != NULL) {
             c->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            //fcntl(c->socket, F_SETFL, O_NONBLOCK);
             error = SSL_set_fd(c->ssl, c->socket) == 1 ? 0 : 1;
         } else {
             error = 1;
@@ -101,7 +102,6 @@ int conn_handshake(struct conn* c)
         SSL_write(c->ssl, str, str_sz);
         http_rq_free(rq);
 
-        // TODO: VERIFY RESPONSE
         // Adjust this buffer size?
         char buf[4096] = {0};
         SSL_read(c->ssl, buf, 4096);
@@ -118,7 +118,6 @@ int conn_handshake(struct conn* c)
     return result;
 }
 
-// TODO: Clean this up
 int _conn_check_handshake_response(
     char* str,
     int str_len,
@@ -158,31 +157,10 @@ int _conn_check_handshake_response(
             cur = http_get_hdr(rs->hdrs, "Sec-WebSocket-Accept", 20);
 
             if (cur != NULL) {
-                char* magic_str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-                int magic_len = strlen(magic_str);
-                char* concat = (char*) malloc(key_len + magic_len);
-                memcpy(concat, key, key_len);
-                memcpy(concat + key_len, magic_str, magic_len);
-
-                EVP_MD_CTX* ctx = EVP_MD_CTX_new();
-
-                if (ctx != NULL) {
-                    // Do checks for errors on these
-                    EVP_DigestInit_ex(ctx, EVP_sha1(), NULL);
-                    EVP_DigestUpdate(ctx, concat, magic_len + key_len);
-                    unsigned char buf[64] = {0};
-                    unsigned int buf_len = 64;
-                    EVP_DigestFinal_ex(ctx, buf, &buf_len);
-
-                    unsigned char buf2[64] = {0};
-                    EVP_EncodeBlock(buf2, buf, 20);
-
-                    if (!strncmp(buf2, cur->value, cur->value_sz)) {
-                        has_accept = 1;
-                    }
+                if (!_conn_check_ws_accept(cur->value, cur->value_sz, 
+                                          key, key_len)) {
+                    has_accept = 1;
                 }
-
-                EVP_MD_CTX_free(ctx);
             }
 
             if (!has_conn || !has_upgrade || !has_accept) {
@@ -197,6 +175,51 @@ int _conn_check_handshake_response(
 
     http_rs_free(rs);
 
+    return result;
+}
+
+int _conn_check_ws_accept(char* str,
+                          int str_len,
+                          unsigned char* key,
+                          int key_len)
+{
+    int result = 0;
+
+    char* magic_str = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    int magic_len = strlen(magic_str);
+    char* concat = (char*) malloc(key_len + magic_len);
+    memcpy(concat, key, key_len);
+    memcpy(concat + key_len, magic_str, magic_len);
+
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+
+    if (ctx != NULL) {
+        if (EVP_DigestInit_ex(ctx, EVP_sha1(), NULL)) {
+            if (EVP_DigestUpdate(ctx, concat, magic_len + key_len)) {
+                unsigned int buf_len = EVP_MD_CTX_size(ctx);
+                unsigned char* buf = (unsigned char*) malloc(buf_len);
+                
+                if (EVP_DigestFinal_ex(ctx, buf, &buf_len)) {
+                    unsigned char buf2[64] = {0};
+                    EVP_EncodeBlock(buf2, buf, 20);
+
+                    if (strncmp((char*) buf2, str, str_len)) {
+                        result = -4;
+                    }
+                } else {
+                    result = -3;
+                }
+
+                free(buf);
+            } else {
+                result = -2;
+            }
+        } else {
+            result = -1;
+        }
+    }
+
+    EVP_MD_CTX_free(ctx);
     return result;
 }
 

@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -59,6 +60,18 @@ int _conn_check_handshake_response(
     int str_len,
     unsigned char* key,
     int key_len);
+
+/*
+    Helper function for _conn_check_handshake_response. Performs the same
+    operations on the generated key as defined in RFC 6455 for the server
+    side generation of Sec-WebSocket-Accept. Returns 0 if the given str
+    value was successfully found to be the proper accept response to key.
+    Returns negative values on failure.
+*/
+int _conn_check_ws_accept(char* str,
+                          int str_len,
+                          unsigned char* key,
+                          int key_len);
 
 /*
     Reads from the connection. Returns a struct ws_frame on success and NULL
