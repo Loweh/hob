@@ -1,35 +1,22 @@
 #include <stdio.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include "net/conn.h"
-#include "net/ws_frame.h"
-#include "net/http.h"
-#include "gateway/gateway.h"
+#include "net/https_conn.h"
 
 int main()
 {
-    struct gateway* g = gateway_init("MTA2NjQxNTM3NjM0NDMwMTYxOQ.G89LZy.qM_07NR_iWkaT7iLQrj9xa5qwfwU5YZcf4sZXY", 72);
+    struct https_conn* conn = https_conn_init("wss://gateway.discord.gg", "443");
     
-    if (!gateway_open(g)) {
-        while (1) {
-            printf("Sending ping...\n");
-            gateway_ping(g);
-        
-            struct ws_frame* out_frame = conn_read(g->c);
-            printf("Received frame:\n\tfin: %hhu\n\topcode: %hhu\n\t"
-                   "mask: %hhu\n\tlength: %lu\n\tmask_key: %u\n\tpayload: %s\n",
-                   out_frame->fin, out_frame->opcode, out_frame->mask,
-                   out_frame->length, out_frame->mask_key, out_frame->payload);
-            free(out_frame);
+    if (!https_conn_open(conn)) {
+        char* buf = "Hello, world!";
+        char buf2[4096] = {0};
+        SSL_write(conn->ssl, buf, 13);
 
-            sleep(g->timeout / 1000);
-        }
-        
+        while (SSL_read(conn->ssl, buf2, 4096) <= 0) {}
+        printf("buf: %s\n", buf2);
+
+        https_conn_close(conn);
     } else {
-        printf("Error: could not open gateway connection.\n");
+        https_conn_close(conn);
     }
-
-    gateway_free(&g);
-
+    
     return 0;
 }
