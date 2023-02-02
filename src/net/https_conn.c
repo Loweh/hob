@@ -50,23 +50,52 @@ int https_conn_open(struct https_conn* conn)
     }
 
     if (getaddrinfo(host, conn->port, 0, &host_info)) {
+        free(host);
         return -2;
     }
 
     int host_info_sz = sizeof(*host_info->ai_addr);
-    if (connect(conn->socket, host_info->ai_addr, host_info_sz)) {
+    int res = connect(conn->socket, host_info->ai_addr, host_info_sz);
+
+    free(host);
+    freeaddrinfo(host_info);
+    
+    struct pollfd pfd;
+    pfd.fd = conn->socket;
+    pfd.events = POLLIN | POLLOUT;
+
+    if (res == -1 && errno == EINPROGRESS) {
+        if (poll(&pfd, 1, -1) == -1) {
+            return -4;
+        }
+
+        if (pfd.revents != POLLOUT) {
+            return -5;
+        }
+    } else {
         return -3;
     }
 
+    res = 0;
 
-    if (SSL_connect(conn->ssl) != 1) {
-        // SSL_connect seems to shutdown itself on error so
-        // no need to shutdown here
-        return -4;
+    while ((res = SSL_connect(conn->ssl)) != 1) {
+        int err = SSL_get_error(conn->ssl, res);
+
+        if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE) {
+            // SSL_connect seems to shutdown itself on error so
+            // no need to shutdown here
+            return -6;
+        }
     }
 
-    if (SSL_do_handshake(conn->ssl) != 1) {
-        return -5;
+    res = 0;
+
+    while ((res = SSL_do_handshake(conn->ssl)) != 1) {
+        int err = SSL_get_error(conn->ssl, res);
+
+        if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE) {
+            return -7;
+        }
     }
 
     conn->alive = 1;
@@ -96,6 +125,6 @@ void https_get_host_from_uri(char* uri, char** host)
         int length = strlen(uri) - 3 - proto_len;
         *host = (char*) malloc(length + 1);
         memcpy(*host, uri + proto_len + 3, length);
-        host[length] = 0;
+        (*host)[length] = 0;
     }
 }

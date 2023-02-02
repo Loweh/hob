@@ -9,6 +9,9 @@
 #include <netdb.h>
 #include <fcntl.h>
 #include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <errno.h>
+#include <poll.h>
 
 #define HTTPS_BUF_SZ 5120
 
