@@ -53,6 +53,7 @@ int https_req_serialize(struct https_req* rq, char** buf)
 
     int path_sz = strlen(rq->path);
     int version_sz = strlen(rq->version);
+    int body_sz = rq->body != NULL ? strlen(rq->body) : 0;
     int hdrs_sz = 0;
     int hdr_cnt = list_length(rq->hdrs);
 
@@ -78,7 +79,7 @@ int https_req_serialize(struct https_req* rq, char** buf)
         }
     }
     
-    int sz = mth_sz + path_sz + version_sz + hdrs_sz;
+    int sz = mth_sz + path_sz + version_sz + hdrs_sz + 2 + body_sz;
     *buf = (char*) malloc(sz);
     int offset = 0;
 
@@ -100,5 +101,12 @@ int https_req_serialize(struct https_req* rq, char** buf)
         free(sizes);
     }
 
+    memcpy(*buf + offset, "\r\n", 2);
+
+    if (rq->body != NULL) {
+        offset += 2;
+        memcpy(*buf + offset, rq->body, body_sz);
+    }
+   
     return sz;
 }

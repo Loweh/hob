@@ -1,34 +1,57 @@
 #include <stdio.h>
+#include <openssl/rand.h>
 #include "net/https_conn.h"
 #include "net/https_req.h"
 
+#define WS_KEY_BYTE_SZ 16 // WebSocket key size for HTTP handshake
+#define WS_KEY_SZ 25 // +1 for the null terminator
+
+int generate_ws_key(unsigned char* key);
+
 int main()
 {
-    struct https_req* rq = https_req_init(HTTPS_GET, "/", "aaaaaa");
-    https_req_add_hdr(rq, "Host", "example.com");
-    https_req_add_hdr(rq, "Content-Type", "application/json");
-
-    char* buf = NULL;
-    int buf_sz = https_req_serialize(rq, &buf);
-    printf("buf: %s (%i)\n", buf, buf_sz);
-    https_req_free(rq);
-    free(buf);
-    /*
     struct https_conn* conn = https_conn_init("wss://gateway.discord.gg", "443");
     int result = https_conn_open(conn);
     if (!result) {
-        char* buf = "Hello, world!";
-        char buf2[4096] = {0};
-        SSL_write(conn->ssl, buf, 13);
+        struct https_req* rq = https_req_init(HTTPS_GET, "wss://gateway.discord.gg", NULL);
+        https_req_add_hdr(rq, "Host", "gateway.discord.gg");
+        https_req_add_hdr(rq, "Connection", "Upgrade");
+        https_req_add_hdr(rq, "Upgrade", "websocket");
+        https_req_add_hdr(rq, "Sec-WebSocket-Version", "13");
 
-        while (SSL_read(conn->ssl, buf2, 4096) <= 0) {}
-        printf("buf: %s\n", buf2);
+        unsigned char key[WS_KEY_SZ] = {0};
+        generate_ws_key(key);
+        https_req_add_hdr(rq, "Sec-WebSocket-Key", (char*) key);
+
+        int ret = https_conn_write(conn, rq);
+        if (!ret) {
+            char buf2[4096] = {0};
+            while (SSL_read(conn->ssl, buf2, 4096) <= 0) {}
+            printf("buf: %s\n", buf2);
+        } else {
+            printf("ERROR READING\n");
+        }
 
         https_conn_close(conn);
     } else {
         printf("%i\n", result);
         https_conn_close(conn);
     }
-    */
+    
+    return 0;
+}
+
+int generate_ws_key(unsigned char* key)
+{
+    unsigned char bytes[WS_KEY_BYTE_SZ] = {0};
+
+    if (RAND_bytes(bytes, WS_KEY_BYTE_SZ) != 1) {
+        return -1;
+    }
+
+    // Since we know there will always be WS_KEY_BYTE_SZ bytes, there is no need
+    // to store the key size return value, since EVP_EncodeBlock will thus also
+    // always return a set number of bytes (WS_KEY_SZ bytes to be exact).
+    EVP_EncodeBlock(key, bytes, WS_KEY_BYTE_SZ);
     return 0;
 }

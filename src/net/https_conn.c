@@ -116,6 +116,28 @@ void https_conn_close(struct https_conn* conn)
     free(conn);
 }
 
+int https_conn_write(struct https_conn* conn, struct https_req* rq)
+{
+    char* buf = NULL;
+    int buf_sz = https_req_serialize(rq, &buf);
+    int res = 0;
+    int result = 0;
+
+    while ((res = SSL_write(conn->ssl, buf, buf_sz)) <= 0) {
+        int err = SSL_get_error(conn->ssl, res);
+
+        if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE) {
+            result = -1;
+            break;
+        }
+    }
+
+    https_req_free(rq);
+    free(buf);
+
+    return result;
+}
+
 void https_get_host_from_uri(char* uri, char** host)
 {
     char* proto_sep = strstr(uri, "://");
