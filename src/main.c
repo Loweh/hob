@@ -2,6 +2,7 @@
 #include <openssl/rand.h>
 #include "net/https_conn.h"
 #include "net/https_req.h"
+#include "net/https_res.h"
 
 #define WS_KEY_BYTE_SZ 16 // WebSocket key size for HTTP handshake
 #define WS_KEY_SZ 25 // +1 for the null terminator
@@ -10,11 +11,18 @@ int generate_ws_key(unsigned char* key);
 
 int main()
 {
-    struct https_conn* conn = https_conn_init("wss://gateway.discord.gg", "443");
+    
+    /*
+    struct https_hdr* hdr = https_hdr_deserialize("Content-Type: application-json", 30);
+    printf("hdr name: %s, hdr value: %s\n", hdr->name, hdr->value);
+    https_hdr_free(hdr);
+    */
+    struct https_conn* conn = https_conn_init("https://example.com", "443");
     int result = https_conn_open(conn);
     if (!result) {
-        struct https_req* rq = https_req_init(HTTPS_GET, "wss://gateway.discord.gg", NULL);
-        https_req_add_hdr(rq, "Host", "gateway.discord.gg");
+        struct https_req* rq = https_req_init(HTTPS_GET, "/", NULL);
+        https_req_add_hdr(rq, "Host", "example.com");
+        /*
         https_req_add_hdr(rq, "Connection", "Upgrade");
         https_req_add_hdr(rq, "Upgrade", "websocket");
         https_req_add_hdr(rq, "Sec-WebSocket-Version", "13");
@@ -22,12 +30,15 @@ int main()
         unsigned char key[WS_KEY_SZ] = {0};
         generate_ws_key(key);
         https_req_add_hdr(rq, "Sec-WebSocket-Key", (char*) key);
+        */
 
         int ret = https_conn_write(conn, rq);
         if (!ret) {
             char buf2[4096] = {0};
             while (SSL_read(conn->ssl, buf2, 4096) <= 0) {}
             printf("buf: %s\n", buf2);
+            struct https_res* rs = https_res_deserialize(buf2, 4096);
+            https_res_free(rs);
         } else {
             printf("ERROR READING\n");
         }
