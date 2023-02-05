@@ -12,11 +12,15 @@ struct https_res {
     struct list_node* hdrs;
     char* body;
     int body_sz;
+    int body_sz_read;
 };
 
 struct https_res* https_res_deserialize(char* buf, int sz);
 void https_res_free(struct https_res* rs);
 
 int https_res_interpret_line1(char* line, int* status);
+int https_res_add_hdr(struct https_res* rs, char* line);
+
+int https_res_read_body(struct https_res* rs, char* buf, int sz);
 
 #endif

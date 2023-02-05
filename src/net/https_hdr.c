@@ -38,12 +38,12 @@ struct https_hdr* https_hdr_deserialize(char* buf, int sz)
             int name_sz = i;
             hdr->name = (char*) malloc(name_sz);
             memcpy(hdr->name, buf, name_sz -1);
-            hdr->name[name_sz] = 0;
+            hdr->name[name_sz - 1] = 0;
 
-            int value_sz = sz - i + 2;
+            int value_sz = sz - i + 1;
             hdr->value = (char*) malloc(value_sz);
             memcpy(hdr->value, buf + name_sz + 1, value_sz - 1);
-            hdr->value[value_sz] = 0;
+            hdr->value[value_sz - 1] = 0;
         }
 
         prev = buf[i];
