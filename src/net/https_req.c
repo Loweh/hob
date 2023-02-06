@@ -1,6 +1,6 @@
 #include "https_req.h"
 
-struct https_req* https_req_init(enum https_mth method, char* path, char* body)
+struct https_req* https_req_init(enum https_mth method, char* path, char* body, int body_sz)
 {
     int sz = sizeof(struct https_req);
     struct https_req* rq = (struct https_req*) malloc(sz);
@@ -9,6 +9,7 @@ struct https_req* https_req_init(enum https_mth method, char* path, char* body)
     rq->version = " HTTP/1.1\r\n";
     rq->hdrs = NULL;
     rq->body = body;
+    rq->body_sz = body_sz;
     return rq;
 }
 
@@ -53,7 +54,6 @@ int https_req_serialize(struct https_req* rq, char** buf)
 
     int path_sz = strlen(rq->path);
     int version_sz = strlen(rq->version);
-    int body_sz = rq->body != NULL ? strlen(rq->body) : 0;
     int hdrs_sz = 0;
     int hdr_cnt = list_length(rq->hdrs);
 
@@ -79,7 +79,7 @@ int https_req_serialize(struct https_req* rq, char** buf)
         }
     }
     
-    int sz = mth_sz + path_sz + version_sz + hdrs_sz + 2 + body_sz;
+    int sz = mth_sz + path_sz + version_sz + hdrs_sz + 2 + rq->body_sz;
     *buf = (char*) malloc(sz);
     int offset = 0;
 
@@ -102,10 +102,10 @@ int https_req_serialize(struct https_req* rq, char** buf)
     }
 
     memcpy(*buf + offset, "\r\n", 2);
+    offset += 2;
 
-    if (rq->body != NULL) {
-        offset += 2;
-        memcpy(*buf + offset, rq->body, body_sz);
+    if (rq->body_sz != 0 && rq->body != NULL) {
+        memcpy(*buf + offset, rq->body, rq->body_sz);
     }
    
     return sz;

@@ -15,9 +15,10 @@ struct https_req {
     char* version;
     struct list_node* hdrs;
     char* body;
+    int body_sz;
 };
 
-struct https_req* https_req_init(enum https_mth method, char* path, char* body);
+struct https_req* https_req_init(enum https_mth method, char* path, char* body, int body_sz);
 void https_req_free(struct https_req* rq);
 
 void https_req_add_hdr(struct https_req* rq, char* name, char* value);

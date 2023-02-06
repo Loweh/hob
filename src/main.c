@@ -20,7 +20,7 @@ int main()
     struct https_conn* conn = https_conn_init("https://example.com", "443");
     int result = https_conn_open(conn);
     if (!result) {
-        struct https_req* rq = https_req_init(HTTPS_GET, "/", NULL);
+        struct https_req* rq = https_req_init(HTTPS_GET, "/", NULL, 0);
         https_req_add_hdr(rq, "Host", "example.com");
         /*
         https_req_add_hdr(rq, "Connection", "Upgrade");
