@@ -34,31 +34,33 @@ int main()
 
         int ret = https_conn_write(conn, rq);
         if (!ret) {
-            char buf2[4096] = {0};
-            while (SSL_read(conn->ssl, buf2, 4096) <= 0) {}
-            printf("buf: %s\n", buf2);
-            struct https_res* rs = https_res_deserialize(buf2, 4096);
-            
-            if (rs != NULL) {
-                printf("HTTPS Response Code: %i\n", rs->status);
+            struct https_res* rs = NULL;
+            int exit = 0;
 
-                struct list_node* node = rs->hdrs;
+            while (!exit) {
+                int err = https_conn_read(conn, &rs);
 
-                while (node != NULL) {
-                    struct https_hdr* hdr = (struct https_hdr*) node->value;
-                    printf("Header (name=%s) (value=%s)\n", hdr->name, hdr->value);
-                    node = node->next;
+                if (rs != NULL && !err && rs->body_sz == rs->body_sz_read) {
+                    printf("HTTPS Response Code: %i\n", rs->status);
+                    struct list_node* node = rs->hdrs;
+
+                    while (node != NULL) {
+                        struct https_hdr* hdr = (struct https_hdr*) node->value;
+                        printf("Header (name=%s) (value=%s)\n", hdr->name, hdr->value);
+                        node = node->next;
+                    }
+
+                    printf("Body (%i): %s\n", rs->body_sz, rs->body);
+
+                    https_res_free(rs);
+                    rs = NULL;
+                    exit = 1;
+                } else {
+                    if (err != 0) {
+                        printf("Error while reading from https_conn (%i).", err);
+                    }
                 }
-
-                https_res_free(rs);
             }
-
-            while (rs->body_sz_read < rs->body_sz) {
-                while (SSL_read(conn->ssl, buf2, 256) <= 0) {}
-                https_res_read_body(rs, buf2, 256);
-            }
-
-            printf("Body (%i): %s\n", rs->body_sz, rs->body);
         } else {
             printf("ERROR READING\n");
         }

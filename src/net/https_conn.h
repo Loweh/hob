@@ -14,6 +14,7 @@
 #include <poll.h>
 
 #include "https_req.h"
+#include "https_res.h"
 
 #define HTTPS_BUF_SZ 5120
 
@@ -32,6 +33,7 @@ int https_conn_open(struct https_conn* conn);
 void https_conn_close(struct https_conn* conn);
 
 int https_conn_write(struct https_conn* conn, struct https_req* rq);
+int https_conn_read(struct https_conn* conn, struct https_res** rs);
 
 void https_get_host_from_uri(char* uri, char** host);
 

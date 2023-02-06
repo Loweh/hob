@@ -138,6 +138,27 @@ int https_conn_write(struct https_conn* conn, struct https_req* rq)
     return result;
 }
 
+int https_conn_read(struct https_conn* conn, struct https_res** rs)
+{
+    char buf[HTTPS_BUF_SZ] = {0};
+    int res = 0;
+
+    if ((res = SSL_read(conn->ssl, buf, HTTPS_BUF_SZ)) > 0) {
+        if (*rs == NULL) {
+            *rs = https_res_deserialize(buf, HTTPS_BUF_SZ);
+        } else {
+            https_res_read_body(*rs, buf, HTTPS_BUF_SZ);
+        }
+    } else {
+        int err = SSL_get_error(conn->ssl, res);
+        if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 void https_get_host_from_uri(char* uri, char** host)
 {
     char* proto_sep = strstr(uri, "://");
