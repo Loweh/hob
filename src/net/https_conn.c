@@ -105,6 +105,8 @@ int https_conn_open(struct https_conn* conn)
 
 void https_conn_close(struct https_conn* conn)
 {
+    conn->alive = 0;
+    
     if (conn->socket != -1) {
         close(conn->socket);
     }

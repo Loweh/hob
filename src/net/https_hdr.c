@@ -40,6 +40,10 @@ struct https_hdr* https_hdr_deserialize(char* buf, int sz)
             memcpy(hdr->name, buf, name_sz -1);
             hdr->name[name_sz - 1] = 0;
 
+            for (int j = 0; j < name_sz; j++) {
+                hdr->name[j] = tolower(hdr->name[j]);
+            }
+
             int value_sz = sz - i + 1;
             hdr->value = (char*) malloc(value_sz);
             memcpy(hdr->value, buf + name_sz + 1, value_sz - 1);
