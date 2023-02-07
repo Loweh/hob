@@ -10,6 +10,14 @@ int main()
 
     if (!(err = ws_conn_open(ws))) {
         printf("Successfully opened WebSocket connection!\n");
+        
+        char buf[5120] = {0};
+        while (SSL_read(ws->https->ssl, buf, 5120) <= 0) {}
+
+        struct ws_frame* f = ws_frame_deserialize(buf, 5120);
+        printf("Received frame: fin = %i, opcode = %i, mask = %i,"
+               "length: %lu, body: %s\n",
+                f->fin, f->opcode, f->mask, f->length, f->data);
     } else {
         printf("Could not open WebSocket connection (%i).\n", err);
     }

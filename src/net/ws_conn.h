@@ -6,7 +6,9 @@
 #include <ctype.h>
 #include <openssl/rand.h>
 #include <openssl/evp.h>
+
 #include "https_conn.h"
+#include "ws_frame.h"
 
 #define WS_KEY_BYTE_SZ 16 // WebSocket key size for HTTP handshake
 #define WS_KEY_SZ 25 // +1 for the null terminator
