@@ -56,7 +56,6 @@ int ws_conn_open(struct ws_conn* conn)
             if (rs != NULL && !ret) {
                 exit = 1;
             } else if (ret) {
-                printf("rs = %i\n", rs);
                 return -3;
             }
         }
@@ -105,8 +104,11 @@ int ws_conn_open(struct ws_conn* conn)
         }
 
         if (!valid_upgrade || !valid_conn || !valid_accept) {
+            https_res_free(rs);
             return -5;
         }
+
+        https_res_free(rs);
     } else {
         return -1;
     }
