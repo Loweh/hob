@@ -64,11 +64,74 @@ struct ws_frame* ws_frame_deserialize(char* buf, int sz)
 
 int ws_frame_serialize(struct ws_frame* f, char** buf)
 {
-    return 0;
-}
+    int sz = 2;
 
+    char byte1 = f->fin ? 0b10000000 : 0;
+    byte1 |= f->opcode;
+
+    char byte2 = f->mask ? 0b10000000 : 0;
+    char* length = NULL;
+    int len_sz = f->length > 0xFFFF ? 8 : 2;
+
+    if (f->length < 126) {
+        byte2 |= f->length;
+    } else {
+        byte2 |= f->length > 0xFFFF ? 127 : 126;
+
+        sz += len_sz;
+        length = (char*) malloc(len_sz);
+        memcpy(length, &f->length, len_sz);
+    }
+
+    char* mask_key = NULL;
+    int mask_key_sz = sizeof(f->mask_key);
+
+    if (f->mask) { 
+        mask_key = (char*) malloc(mask_key_sz);
+        memcpy(mask_key, &f->mask_key, mask_key_sz);
+        sz += mask_key_sz;
+    }
+
+    sz += f->length;
+
+    // Implement XORing of data
+    *buf = (char*) malloc(sz);
+    int offset = 0;
+
+    char* segments[5] = {&byte1, &byte2, length, mask_key, f->data};
+    int sizes[5] = {1, 1, len_sz, mask_key_sz, f->length};
+
+    for (int i = 0; i < 5; i++) {
+        if (segments[i] != NULL) {
+            memcpy(*buf + offset, segments[i], sizes[i]);
+            offset += sizes[i];
+        }
+    }
+
+    if (length != NULL) {
+        free(length);
+    }
+    
+    if (mask_key != NULL) {
+        free(mask_key);
+    }
+
+    return sz;
+}
 
 unsigned long ntohll(unsigned long n)
 {
-    return 0;
+    unsigned long result = 0;
+    int sz = sizeof(unsigned long);
+    unsigned long mask = 0x00000000000000FF;
+
+    for (int i = 0; i < sz; i++) {
+        unsigned long tmp = n & mask;
+        tmp = tmp >> i * 8;
+        tmp = tmp << (sz * 7 - i * 8);
+        result |= tmp;
+        mask = mask << 8;
+    }
+
+    return result;
 }

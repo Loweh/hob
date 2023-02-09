@@ -18,65 +18,31 @@ int main()
         printf("Received frame: fin = %i, opcode = %i, mask = %i,"
                "length: %lu, body: %s\n",
                 f->fin, f->opcode, f->mask, f->length, f->data);
+
+        ws_frame_free(f);
+
+        struct ws_frame* f2 = ws_frame_init(1, WS_TXT_FRAME, 1, 22, 0,
+                                           "{ \"op\": 1, \"d\": null }");
+        char* buf2 = NULL;
+        int len = ws_frame_serialize(f, &buf2);
+        SSL_write(ws->https->ssl, buf2, len);
+
+        free(buf2);
+        ws_frame_free(f2);
+
+        while (SSL_read(ws->https->ssl, buf, 5120) <= 0) {}
+
+        struct ws_frame* f3 = ws_frame_deserialize(buf, 5120);
+        printf("Received frame: fin = %i, opcode = %i, mask = %i,"
+               "length: %lu, body: %s\n",
+                f3->fin, f3->opcode, f3->mask, f3->length, f3->data);
+            
+        ws_frame_free(f3);
     } else {
         printf("Could not open WebSocket connection (%i).\n", err);
     }
 
     ws_conn_close(ws);
-    /*
-    struct https_conn* conn = https_conn_init("https://example.com", "443");
-    int result = https_conn_open(conn);
-    if (!result) {
-        struct https_req* rq = https_req_init(HTTPS_GET, "/", NULL, 0);
-        https_req_add_hdr(rq, "Host", "example.com");
-        https_req_add_hdr(rq, "Connection", "Upgrade");
-        https_req_add_hdr(rq, "Upgrade", "websocket");
-        https_req_add_hdr(rq, "Sec-WebSocket-Version", "13");
-
-        unsigned char key[WS_KEY_SZ] = {0};
-        generate_ws_key(key);
-        https_req_add_hdr(rq, "Sec-WebSocket-Key", (char*) key);
-
-        int ret = https_conn_write(conn, rq);
-        if (!ret) {
-            struct https_res* rs = NULL;
-            int exit = 0;
-
-            while (!exit) {
-                int err = https_conn_read(conn, &rs);
-
-                if (rs != NULL && !err && rs->body_sz == rs->body_sz_read) {
-                    printf("HTTPS Response Code: %i\n", rs->status);
-                    struct list_node* node = rs->hdrs;
-
-                    while (node != NULL) {
-                        struct https_hdr* hdr = (struct https_hdr*) node->value;
-                        printf("Header (name=%s) (value=%s)\n", hdr->name, hdr->value);
-                        node = node->next;
-                    }
-
-                    printf("Body (%i): %s\n", rs->body_sz, rs->body);
-
-                    https_res_free(rs);
-                    rs = NULL;
-                    exit = 1;
-                } else {
-                    if (err != 0) {
-                        printf("Error while reading from https_conn (%i).", err);
-                    }
-                }
-            }
-        } else {
-            printf("ERROR READING\n");
-        }
-
-        https_conn_close(conn);
-    } else {
-        printf("%i\n", result);
-        https_conn_close(conn);
-    }
-
-    */
     
     return 0;
 }
