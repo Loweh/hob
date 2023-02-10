@@ -51,6 +51,45 @@ void ws_conn_close(struct ws_conn* conn)
     free(conn);
 }
 
+int ws_conn_write(struct ws_conn* conn, struct ws_frame* f)
+{
+    char* buf = NULL;
+    int buf_sz = ws_frame_serialize(f, &buf);
+    int res = 0;
+    int result = 0;
+
+    while ((res = SSL_write(conn->https->ssl, buf, buf_sz)) <= 0) {
+        int err = SSL_get_error(conn->https->ssl, res);
+
+        if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE) {
+            result = -1;
+            break;
+        }
+    }
+
+    ws_frame_free(f);
+    free(buf);
+
+    return result;
+}
+
+int ws_conn_read(struct ws_conn* conn, struct ws_frame** f)
+{
+    char buf[HTTPS_BUF_SZ] = {0};
+    int res = 0;
+
+    if ((res = SSL_read(conn->https->ssl, buf, HTTPS_BUF_SZ)) > 0) {
+        *f = ws_frame_deserialize(buf, HTTPS_BUF_SZ);
+    } else {
+        int err = SSL_get_error(conn->https->ssl, res);
+        if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 int ws_conn_handshake_send(struct ws_conn* conn)
 {
     unsigned char bytes[WS_KEY_BYTE_SZ] = {0};

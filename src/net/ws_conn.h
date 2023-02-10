@@ -25,6 +25,9 @@ struct ws_conn* ws_conn_init(char* uri, char* host, char* port);
 int ws_conn_open(struct ws_conn* conn);
 void ws_conn_close(struct ws_conn* conn);
 
+int ws_conn_write(struct ws_conn* conn, struct ws_frame* f);
+int ws_conn_read(struct ws_conn* conn, struct ws_frame** f);
+
 int ws_conn_handshake_send(struct ws_conn* conn);
 int ws_conn_handshake_receive(struct ws_conn* conn);
 int ws_conn_handshake_verify_hdrs(struct ws_conn* conn, struct https_res* rs);

@@ -10,11 +10,18 @@ int main()
 
     if (!(err = ws_conn_open(ws))) {
         printf("Successfully opened WebSocket connection!\n");
-        
-        char buf[5120] = {0};
-        while (SSL_read(ws->https->ssl, buf, 5120) <= 0) {}
 
-        struct ws_frame* f = ws_frame_deserialize(buf, 5120);
+        struct ws_frame* f = NULL;
+        int exit = 0;
+
+        while (!exit) {
+            int res = ws_conn_read(ws, &f);
+
+            if (f != NULL && !res) {
+                exit = 1;
+            }
+        }
+
         printf("Received frame: fin = %i, opcode = %i, mask = %i,"
                "length: %lu, body: %s\n",
                 f->fin, f->opcode, f->mask, f->length, f->data);
@@ -23,21 +30,27 @@ int main()
 
         struct ws_frame* f2 = ws_frame_init(1, WS_TXT_FRAME, 1, 22, 0,
                                            "{ \"op\": 1, \"d\": null }");
-        char* buf2 = NULL;
-        int len = ws_frame_serialize(f, &buf2);
-        SSL_write(ws->https->ssl, buf2, len);
+        
+        if (!ws_conn_write(ws, f2)) {
+            struct ws_frame* f3 = NULL;
+            int exit2 = 0;
 
-        free(buf2);
-        ws_frame_free(f2);
+            while (!exit2) {
+                int res = ws_conn_read(ws, &f3);
 
-        while (SSL_read(ws->https->ssl, buf, 5120) <= 0) {}
+                if (f3 != NULL && !res) {
+                    exit2 = 1;
+                }
+            }
 
-        struct ws_frame* f3 = ws_frame_deserialize(buf, 5120);
-        printf("Received frame: fin = %i, opcode = %i, mask = %i,"
+            printf("Received frame: fin = %i, opcode = %i, mask = %i,"
                "length: %lu, body: %s\n",
                 f3->fin, f3->opcode, f3->mask, f3->length, f3->data);
             
-        ws_frame_free(f3);
+            ws_frame_free(f3);
+        } else {
+            printf("Error writing to WebSocket connection.\n");
+        }
     } else {
         printf("Could not open WebSocket connection (%i).\n", err);
     }
