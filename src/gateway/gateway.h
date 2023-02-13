@@ -10,6 +10,7 @@
 
 struct gateway {
     struct ws_conn* ws;
+    int seq;
     int hb_timeout;
     int hb_last;
 };

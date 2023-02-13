@@ -30,6 +30,44 @@ struct event* event_deserialize(char* buf, int sz)
     return e;
 }
 
+int event_serialize(struct event* e, char** buf)
+{
+    char* txt1 = "{ \"op\": ";
+    int txt1_sz = strlen(txt1);
+    char* txt2 = ", \"d\": ";
+    int txt2_sz = strlen(txt2);
+    char* txt3 = " }";
+    int txt3_sz = strlen(txt3);
+    
+    int op_digits = 1;
+
+    for (int i = e->opcode; i >= 10; i /= 10) {
+        op_digits++;
+    }
+
+    char* opcode = (char*) malloc(op_digits + 1);
+    snprintf(opcode, op_digits + 1, "%i", e->opcode);
+
+    int data_sz = e->data != NULL ? strlen(e->data) : 4;
+
+    int sz = txt1_sz + txt2_sz + txt3_sz + op_digits + data_sz;
+    *buf = (char*) malloc(sz);
+
+    char* segments[5] = {txt1, opcode, txt2, e->data != NULL ? e->data : "null",
+                         txt3};
+    int sizes[5] = {txt1_sz, op_digits, txt2_sz, data_sz, txt3_sz};
+    int offset = 0;
+
+    for (int i = 0; i < 5; i++) {
+        memcpy(*buf + offset, segments[i], sizes[i]);
+        offset += sizes[i];
+    }
+
+    free(opcode);
+
+    return sz;
+}
+
 void event_free(struct event* e)
 {
     if (e->data != NULL) {

@@ -13,6 +13,31 @@ struct gateway* gateway_open(char* token)
 
         if (!(err = gateway_get_hello(g))) {
             printf("Received Hello event (timeout=%i).\n", g->hb_timeout);
+
+            struct event e;
+            e.opcode = 1;
+            e.data = NULL;
+
+            char* buf = NULL;
+            int sz = event_serialize(&e, &buf);
+
+            struct ws_frame* f = ws_frame_init(1, WS_TXT_FRAME, 1, sz, 0, buf);
+            ws_conn_write(g->ws, f);
+            free(buf);
+
+            int exit = 0;
+            f = NULL;
+
+            while (!exit) {
+                int err = ws_conn_read(g->ws, &f);
+
+                if (!err && f != NULL) {
+                    exit = 1;
+                }
+            }
+
+            printf("Received frame data: %s\n", f->data);
+            ws_frame_free(f);
         } else {
             printf("Could not receive Hello event (%i)\n", err);
         }
