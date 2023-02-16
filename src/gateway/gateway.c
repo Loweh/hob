@@ -1,5 +1,6 @@
 #include "gateway.h"
 
+// This is in dire need of refactoring
 struct gateway* gateway_open(char* token)
 {
     struct gateway* g = (struct gateway*) malloc(sizeof(struct gateway));
@@ -18,27 +19,39 @@ struct gateway* gateway_open(char* token)
             e.opcode = 1;
             e.data = NULL;
 
-            char* buf = NULL;
-            int sz = event_serialize(&e, &buf);
+            if (!gateway_write(g, &e)) {
+                struct event* res = NULL;
+                int exit = 0;
+                int success = 0;
 
-            struct ws_frame* f = ws_frame_init(1, WS_TXT_FRAME, 1, sz, 0, buf);
-            ws_conn_write(g->ws, f);
-            free(buf);
+                while (!exit) {
+                    int err = gateway_read(g, &res);
 
-            int exit = 0;
-            f = NULL;
-
-            while (!exit) {
-                int err = ws_conn_read(g->ws, &f);
-
-                if (!err && f != NULL) {
-                    exit = 1;
+                    if (!err && res != NULL) {
+                        exit = 1;
+                        success = 1;
+                    } else if (err < -1) {
+                        exit = 1;
+                        success = err;
+                    }
                 }
-            }
 
-            printf("Received frame data: %s\n", f->data);
-            ws_frame_free(f);
+                if (success == 1) {
+                    printf("Received event: opcode: %i, data: %s\n", res->opcode, res->data);
+                    event_free(res);
+                } else {
+                    gateway_close(g);
+                    g = NULL;
+                    printf("Received error reading heartbeat ACK (%i).", err);
+                }
+            } else {
+                gateway_close(g);
+                g = NULL;
+                printf("Could not send heartbeat.\n");
+            }
         } else {
+            gateway_close(g);
+            g = NULL;
             printf("Could not receive Hello event (%i)\n", err);
         }
     } else {
@@ -93,4 +106,41 @@ int gateway_get_hello(struct gateway* g)
     ws_frame_free(f);
 
     return 0;
+}
+
+int gateway_read(struct gateway* g, struct event** e)
+{
+    int res = 0;
+    struct ws_frame* f = NULL;
+
+    if ((res = ws_conn_read(g->ws, &f))) {
+        return -1;
+    }
+
+    if (f != NULL) {
+        if (f->opcode == WS_CLOSE_FRAME) {
+            ws_frame_free(f);
+            return -2;
+        } else if (f->opcode != WS_TXT_FRAME) {
+            ws_frame_free(f);
+            return -3;
+        }
+
+        *e = event_deserialize(f->data, f->length);
+        ws_frame_free(f);
+    }
+
+    return 0;
+}
+
+int gateway_write(struct gateway* g, struct event* e)
+{
+    char* buf = NULL;
+    int sz = event_serialize(e, &buf);
+
+    struct ws_frame* f = ws_frame_init(1, WS_TXT_FRAME, 1, sz, 0, buf);
+    int result = ws_conn_write(g->ws, f);
+    free(buf);
+
+    return result;
 }

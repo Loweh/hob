@@ -18,6 +18,9 @@ struct gateway {
 struct gateway* gateway_open(char* token);
 void gateway_close(struct gateway* g);
 
+int gateway_read(struct gateway* g, struct event** e);
+int gateway_write(struct gateway* g, struct event* e);
+
 int gateway_get_hello(struct gateway* g);
 
 #endif
