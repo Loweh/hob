@@ -80,7 +80,8 @@ int ws_frame_serialize(struct ws_frame* f, char** buf)
 
         sz += len_sz;
         length = (char*) malloc(len_sz);
-        memcpy(length, &f->length, len_sz);
+        int net_order = f->length > 0xFFFF ? ntohll(f->length) : ntohs(f->length);
+        memcpy(length, &net_order, len_sz);
     }
 
     char* mask_key = NULL;
