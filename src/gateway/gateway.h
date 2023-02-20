@@ -8,9 +8,12 @@
 #include "../net/ws_conn.h"
 #include "event.h"
 #include "hello_data.h"
+#include "ready_data.h"
 
 struct gateway {
     struct ws_conn* ws;
+    char* session_id;
+    char* resume_url;
     int seq;
     int hb_timeout;
     time_t hb_last;

@@ -12,6 +12,6 @@ struct ready_data {
     char* resume_url;
 };
 
-int get_ready_data(char* buf, struct ready_data** d);
+int get_ready_data(char* buf, struct ready_data* d);
 
 #endif

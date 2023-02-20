@@ -8,6 +8,8 @@ struct gateway* gateway_open(char* token)
                                "443");
     g->seq = -1;
     g->hb_timeout = 0;
+    g->session_id = NULL;
+    g->resume_url = NULL;
     g->hb_last = 0;
 
     int err = 0;
@@ -22,7 +24,8 @@ struct gateway* gateway_open(char* token)
                 printf("Successfully established Heartbeat.\n");
 
                 if (!(err = gateway_identify(g, "MTA2NjQxNTM3NjM0NDMwMTYxOQ.GJ5Lmv.Q6hCyrQJJU1LnngoJrKJGRnc8GSl_vOLIM209o"))) {
-                    printf("Successfully identified to server.\n");
+                    printf("Successfully identified to server.\n\tsession_id: "
+                           "%s\n\tresume_url: %s\n", g->session_id, g->resume_url);
                 } else {
                     gateway_close(g);
                     g = NULL;
@@ -49,6 +52,14 @@ struct gateway* gateway_open(char* token)
 
 void gateway_close(struct gateway* g)
 {
+    if (g->session_id != NULL) {
+        free(g->session_id);
+    }
+    
+    if (g->resume_url != NULL) {
+        free(g->resume_url);
+    }
+
     ws_conn_close(g->ws);
     free(g);
 }
@@ -243,7 +254,16 @@ int gateway_identify(struct gateway* g, char* token)
     }
 
     if (success == 1) {
-        printf("Received event: opcode: %i, data: %s\n", res->opcode, res->data);
+        struct ready_data data;
+
+        if (get_ready_data(res->data, &data)) {
+            event_free(res);
+            return -3;
+        }
+
+        g->session_id = data.session_id;
+        g->resume_url = data.resume_url;
+
         event_free(res);
     } else {
         return -2;
