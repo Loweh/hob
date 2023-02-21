@@ -8,6 +8,7 @@ struct gateway* gateway_open(char* token)
                                "443");
     g->seq = -1;
     g->hb_timeout = 0;
+    g->app_id = NULL;
     g->session_id = NULL;
     g->resume_url = NULL;
     g->hb_last = 0;
@@ -24,8 +25,9 @@ struct gateway* gateway_open(char* token)
                 printf("Successfully established Heartbeat.\n");
 
                 if (!(err = gateway_identify(g, "MTA2NjQxNTM3NjM0NDMwMTYxOQ.GJ5Lmv.Q6hCyrQJJU1LnngoJrKJGRnc8GSl_vOLIM209o"))) {
-                    printf("Successfully identified to server.\n\tsession_id: "
-                           "%s\n\tresume_url: %s\n", g->session_id, g->resume_url);
+                    printf("Successfully identified to server.\n\tapp_id: %s\n"
+                           "\tsession_id: %s\n\tresume_url: %s\n",
+                           g->app_id, g->session_id, g->resume_url);
 
                     printf("Starting gateway listening.\n");
                     int err = gateway_listen(g);
@@ -58,6 +60,10 @@ struct gateway* gateway_open(char* token)
 
 void gateway_close(struct gateway* g)
 {
+    if (g->app_id != NULL) {
+        free(g->app_id);
+    }
+
     if (g->session_id != NULL) {
         free(g->session_id);
     }
@@ -200,8 +206,11 @@ int gateway_ping(struct gateway* g)
     int err = 0;
 
     if ((err = gateway_write(g, &e))) {
+        free(e.data);
         return -1;
     }
+
+    free(e.data);
 
     g->hb_last = time(NULL);
 
@@ -267,6 +276,7 @@ int gateway_identify(struct gateway* g, char* token)
             return -3;
         }
 
+        g->app_id = data.app_id;
         g->session_id = data.session_id;
         g->resume_url = data.resume_url;
 

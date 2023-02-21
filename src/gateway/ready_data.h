@@ -5,9 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "app_data.h"
 #include "../ext/jsmn.h"
 
 struct ready_data {
+    char* app_id;
     char* session_id;
     char* resume_url;
 };

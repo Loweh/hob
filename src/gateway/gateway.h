@@ -12,6 +12,7 @@
 
 struct gateway {
     struct ws_conn* ws;
+    char* app_id;
     char* session_id;
     char* resume_url;
     int seq;

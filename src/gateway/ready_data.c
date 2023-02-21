@@ -53,6 +53,24 @@ int get_ready_data(char* buf, struct ready_data* d)
                     free(tokens);
                     return -2;
                 }
+            } else if (prev_sz == 11 && !strncmp(buf + prev.start, "application",
+                                               prev_sz)) {
+                if (tokens[i].type == JSMN_OBJECT) {
+                    int sz = tokens[i].end - tokens[i].start;
+                    char* app_data = (char*) malloc(sz + 1);
+                    memcpy(app_data, buf + tokens[i].start, sz);
+                    app_data[sz] = 0;
+
+                    char* app_id = get_app_data(app_data);
+                    free(app_data);
+
+                    if (app_id != NULL) {
+                        d->app_id = app_id;
+                    } else {
+                        free(tokens);
+                        return -3;
+                    }
+                }
             }
         }
 
