@@ -30,5 +30,6 @@ int gateway_write(struct gateway* g, struct event* e);
 
 int gateway_ping(struct gateway* g);
 int gateway_identify(struct gateway* g, char* token);
+int gateway_listen(struct gateway* g);
 
 #endif

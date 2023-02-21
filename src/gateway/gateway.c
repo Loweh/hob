@@ -26,6 +26,12 @@ struct gateway* gateway_open(char* token)
                 if (!(err = gateway_identify(g, "MTA2NjQxNTM3NjM0NDMwMTYxOQ.GJ5Lmv.Q6hCyrQJJU1LnngoJrKJGRnc8GSl_vOLIM209o"))) {
                     printf("Successfully identified to server.\n\tsession_id: "
                            "%s\n\tresume_url: %s\n", g->session_id, g->resume_url);
+
+                    printf("Starting gateway listening.\n");
+                    int err = gateway_listen(g);
+                    if (err) {
+                        printf("Error while listening to gateway (%i).\n", err);
+                    }
                 } else {
                     gateway_close(g);
                     g = NULL;
@@ -187,7 +193,7 @@ int gateway_ping(struct gateway* g)
         }
 
         e.data = (char* ) malloc(digits + 1);
-        snprintf(e.data, digits, "%i", seq);
+        snprintf(e.data, digits + 1, "%i", g->seq);
         e.data[digits] = 0;
     }
     
@@ -270,4 +276,35 @@ int gateway_identify(struct gateway* g, char* token)
     }
 
     return 0;
+}
+
+int gateway_listen(struct gateway* g)
+{
+    int exit = 0;
+
+    while (!exit) {
+        time_t curtime = time(NULL);
+        time_t diff = curtime - g->hb_last;
+
+        if (diff >= g->hb_timeout / 1000) {
+            printf("\tSending heartbeat (lastping=%i).\n", (int) diff);
+
+            if (gateway_ping(g)) {
+                exit = -1;
+            }
+        }
+
+        struct event* e = NULL;
+        int err = gateway_read(g, &e);
+        
+        if (!err && e != NULL) {
+            printf("\tReceived event:\n\t\topcode: %i\n\t\tseq: %i\n\t\tdata: %s\n",
+                   e->opcode, e->seq, e->data);
+            event_free(e);
+        } else if (err) {
+            exit = -2;
+        }
+    }
+
+    return exit;
 }
