@@ -24,7 +24,7 @@ struct gateway* gateway_open(char* token)
             if (!(err = gateway_hb_handshake(g))) {
                 printf("Successfully established Heartbeat.\n");
 
-                if (!(err = gateway_identify(g, "MTA2NjQxNTM3NjM0NDMwMTYxOQ.GJ5Lmv.Q6hCyrQJJU1LnngoJrKJGRnc8GSl_vOLIM209o"))) {
+                if (!(err = gateway_identify(g, token))) {
                     printf("Successfully identified to server.\n\tapp_id: %s\n"
                            "\tsession_id: %s\n\tresume_url: %s\n",
                            g->app_id, g->session_id, g->resume_url);
