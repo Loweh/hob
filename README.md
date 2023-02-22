@@ -1,3 +1,3 @@
 # hob
 
-A simple Discord bot for the Gateway API written in C.
+A simple Discord bot for posting images written in C.
